@@ -1,8 +1,3 @@
-/* ============================================
-   FUTURE MOBILE — Premium Corporate Website
-   JavaScript — Vanilla Only
-   ============================================ */
-
 (function () {
   'use strict';
 
