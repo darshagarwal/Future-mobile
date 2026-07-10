@@ -11,9 +11,8 @@
     initMobileMenu();
     initSmoothScroll();
     initAnimations();
-    initCarousel();
-    initFAQ();
-    initCounters();
+    initAchievements();
+    // removed undefined: initCarousel(), initFAQ(), initCounters()
     initContactForm();
   }
 
@@ -49,20 +48,22 @@
     toggle.addEventListener('click', function () {
       var isOpen = nav.classList.toggle('open');
       toggle.classList.toggle('active');
-      toggle.setAttribute('aria-expanded', isOpen);
+      toggle.setAttribute('aria-expanded', String(isOpen));
       document.body.style.overflow = isOpen ? 'hidden' : '';
     });
 
     // Close on link click
     var links = nav.querySelectorAll('.nav-link');
-    links.forEach(function (link) {
-      link.addEventListener('click', function () {
-        nav.classList.remove('open');
-        toggle.classList.remove('active');
-        toggle.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
+    if (links && links.length) {
+      links.forEach(function (link) {
+        link.addEventListener('click', function () {
+          nav.classList.remove('open');
+          toggle.classList.remove('active');
+          toggle.setAttribute('aria-expanded', 'false');
+          document.body.style.overflow = '';
+        });
       });
-    });
+    }
 
     // Close on escape key
     document.addEventListener('keydown', function (e) {
@@ -79,13 +80,20 @@
      4. Smooth Scroll for Anchor Links
      ======================================== */
   function initSmoothScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+    var anchors = document.querySelectorAll('a[href^="#"]');
+    if (!anchors || !anchors.length) return;
+
+    var navbar = document.getElementById('navbar');
+    var navbarHeight = navbar ? navbar.offsetHeight : 0;
+
+    anchors.forEach(function (anchor) {
       anchor.addEventListener('click', function (e) {
-        var target = document.querySelector(this.getAttribute('href'));
+        var href = this.getAttribute('href');
+        if (!href || href === '#') return;
+        var target = document.querySelector(href);
         if (!target) return;
         e.preventDefault();
-        var navbarHeight = document.getElementById('navbar').offsetHeight;
-        var top = target.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
+        var top = target.getBoundingClientRect().top + window.pageYOffset - (navbar ? navbar.offsetHeight : 0);
         window.scrollTo({ top: top, behavior: 'smooth' });
       });
     });
@@ -96,7 +104,7 @@
      ======================================== */
   function initAnimations() {
     var items = document.querySelectorAll('.anim-item');
-    if (!items.length) return;
+    if (!items || !items.length) return;
 
     if (!('IntersectionObserver' in window)) {
       // Fallback: show everything
@@ -124,250 +132,127 @@
   }
 
   /* ========================================
-     6. Testimonials Carousel
+     6. Achievements / Carousel
      ======================================== */
-  function initCarousel() {
-    var track = document.getElementById('testimonials-track');
-    var prevBtn = document.getElementById('carousel-prev');
-    var nextBtn = document.getElementById('carousel-next');
-    var dotsContainer = document.getElementById('carousel-dots');
-    if (!track || !prevBtn || !nextBtn || !dotsContainer) return;
+  function initAchievements() {
+    var track = document.getElementById('achievementTrack');
+    if (!track) return;
 
-    var cards = track.querySelectorAll('.testimonial-card');
-    var total = cards.length;
-    var current = 0;
-    var autoplayTimer = null;
-    var autoplayDelay = 6000;
+    var cards = track.querySelectorAll('.achievement-card');
+    if (!cards || !cards.length) return;
 
-    // Create dots
-    for (var i = 0; i < total; i++) {
-      var dot = document.createElement('button');
-      dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
-      dot.setAttribute('role', 'tab');
-      dot.setAttribute('aria-label', 'Go to testimonial ' + (i + 1));
-      dot.setAttribute('data-index', i);
-      dotsContainer.appendChild(dot);
-    }
+    var dots = document.querySelectorAll('.achievement-dots span') || [];
+    var prevBtn = document.querySelector('.achievement-arrow.prev');
+    var nextBtn = document.querySelector('.achievement-arrow.next');
 
-    var dots = dotsContainer.querySelectorAll('.carousel-dot');
+    var index = 0;
+    var visibleCards = 2; // preserve original behaviour
+    var gap = 30;
+    var autoplayInterval = 5000;
+    var resizeDebounceMs = 100;
 
-    function goTo(index) {
-      if (index < 0) index = total - 1;
-      if (index >= total) index = 0;
-      current = index;
-      track.style.transform = 'translateX(-' + (current * 100) + '%)';
-      dots.forEach(function (d, di) {
-        d.classList.toggle('active', di === current);
-      });
-    }
+    function update() {
+      if (!cards || !cards.length || !track) return;
+      var cardWidth = cards[0].offsetWidth || 0;
+      track.style.transform = `translateX(calc(-${index * (cardWidth + gap)}px + 70px))`;
 
-    prevBtn.addEventListener('click', function () {
-      goTo(current - 1);
-      resetAutoplay();
-    });
-
-    nextBtn.addEventListener('click', function () {
-      goTo(current + 1);
-      resetAutoplay();
-    });
-
-    dots.forEach(function (dot) {
-      dot.addEventListener('click', function () {
-        goTo(parseInt(this.getAttribute('data-index'), 10));
-        resetAutoplay();
-      });
-    });
-
-    // Keyboard navigation
-    track.parentElement.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') { goTo(current - 1); resetAutoplay(); }
-      if (e.key === 'ArrowRight') { goTo(current + 1); resetAutoplay(); }
-    });
-
-    // Touch / Swipe support
-    var startX = 0;
-    var diffX = 0;
-
-    track.addEventListener('touchstart', function (e) {
-      startX = e.touches[0].clientX;
-      diffX = 0;
-    }, { passive: true });
-
-    track.addEventListener('touchmove', function (e) {
-      diffX = e.touches[0].clientX - startX;
-    }, { passive: true });
-
-    track.addEventListener('touchend', function () {
-      if (Math.abs(diffX) > 50) {
-        if (diffX > 0) goTo(current - 1);
-        else goTo(current + 1);
-        resetAutoplay();
+      if (dots && dots.length) {
+        dots.forEach(function (dot) { dot.classList.remove('active'); });
+        if (dots[index]) dots[index].classList.add('active');
       }
-    });
-
-    // Autoplay
-    function startAutoplay() {
-      autoplayTimer = setInterval(function () {
-        goTo(current + 1);
-      }, autoplayDelay);
     }
 
-    function resetAutoplay() {
-      clearInterval(autoplayTimer);
-      startAutoplay();
-    }
-
-    startAutoplay();
-  }
-
-  /* ========================================
-     7. FAQ Accordion
-     ======================================== */
-  function initFAQ() {
-    var items = document.querySelectorAll('.faq-item');
-    if (!items.length) return;
-
-    items.forEach(function (item) {
-      var btn = item.querySelector('.faq-question');
-      var answer = item.querySelector('.faq-answer');
-      if (!btn || !answer) return;
-
-      btn.addEventListener('click', function () {
-        var isOpen = item.classList.contains('active');
-
-        // Close all others
-        items.forEach(function (other) {
-          if (other !== item) {
-            other.classList.remove('active');
-            var otherBtn = other.querySelector('.faq-question');
-            var otherAnswer = other.querySelector('.faq-answer');
-            if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
-            if (otherAnswer) otherAnswer.style.maxHeight = '0';
-          }
-        });
-
-        // Toggle current
-        if (isOpen) {
-          item.classList.remove('active');
-          btn.setAttribute('aria-expanded', 'false');
-          answer.style.maxHeight = '0';
-        } else {
-          item.classList.add('active');
-          btn.setAttribute('aria-expanded', 'true');
-          answer.style.maxHeight = answer.scrollHeight + 'px';
-        }
-      });
-    });
-  }
-
-  /* ========================================
-     8. Animated Counters
-     ======================================== */
-  function initCounters() {
-    var counters = document.querySelectorAll('.stat-value[data-count]');
-    if (!counters.length) return;
-
-    if (!('IntersectionObserver' in window)) {
-      counters.forEach(function (el) { finalizeCounter(el); });
-      return;
-    }
-
-    var observed = false;
-
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting && !observed) {
-          observed = true;
-          counters.forEach(function (el) { animateCounter(el); });
-          observer.disconnect();
-        }
-      });
-    }, { threshold: 0.3 });
-
-    var section = document.getElementById('stats');
-    if (section) observer.observe(section);
-  }
-
-  function animateCounter(el) {
-    var target = parseInt(el.getAttribute('data-count'), 10);
-    var prefix = el.getAttribute('data-prefix') || '';
-    var suffixText = el.getAttribute('data-suffix-text') || '';
-    var duration = 2000;
-    var start = 0;
-    var startTime = null;
-
-    function easeOutQuart(t) {
-      return 1 - Math.pow(1 - t, 4);
-    }
-
-    function step(timestamp) {
-      if (!startTime) startTime = timestamp;
-      var elapsed = timestamp - startTime;
-      var progress = Math.min(elapsed / duration, 1);
-      var eased = easeOutQuart(progress);
-      var current = Math.floor(eased * target);
-
-      el.textContent = prefix + formatNumber(current) + suffixText;
-
-      if (progress < 1) {
-        requestAnimationFrame(step);
+    function nextHandler() {
+      if (!cards) return;
+      if (index < cards.length - visibleCards) {
+        index++;
       } else {
-        el.textContent = prefix + formatNumber(target) + suffixText;
+        index = 0;
       }
+      update();
     }
 
-    requestAnimationFrame(step);
-  }
+    function prevHandler() {
+      if (!cards) return;
+      if (index > 0) {
+        index--;
+      } else {
+        index = Math.max(0, cards.length - visibleCards);
+      }
+      update();
+    }
 
-  function finalizeCounter(el) {
-    var target = parseInt(el.getAttribute('data-count'), 10);
-    var prefix = el.getAttribute('data-prefix') || '';
-    var suffixText = el.getAttribute('data-suffix-text') || '';
-    el.textContent = prefix + formatNumber(target) + suffixText;
-  }
+    if (nextBtn) nextBtn.addEventListener('click', nextHandler);
+    if (prevBtn) prevBtn.addEventListener('click', prevHandler);
 
-  function formatNumber(n) {
-    return n.toLocaleString('en-US');
+    var autoplayId = null;
+    if (nextBtn) {
+      autoplayId = setInterval(function () {
+        nextHandler();
+      }, autoplayInterval);
+    }
+
+    // debounce helper
+    function debounce(fn, wait) {
+      var t;
+      return function () {
+        var args = arguments;
+        clearTimeout(t);
+        t = setTimeout(function () { fn.apply(null, args); }, wait);
+      };
+    }
+
+    var debouncedUpdate = debounce(function () { update(); }, resizeDebounceMs);
+    window.addEventListener('resize', debouncedUpdate);
+
+    // initial layout update
+    // ensure layout has been calculated
+    requestAnimationFrame(function () { update(); });
   }
 
   /* ========================================
-     9. Contact Form
+     7. Contact Form
      ======================================== */
   function initContactForm() {
     var form = document.getElementById('contact-form');
     if (!form) return;
 
+    var submitBtn = document.getElementById('contact-submit');
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-
-      var submitBtn = document.getElementById('contact-submit');
       if (!submitBtn) return;
 
-      // Basic validation
       var name = document.getElementById('contact-name');
       var email = document.getElementById('contact-email');
-      var subject = document.getElementById('contact-subject');
+      var company = document.getElementById('contact-company'); // optional
+      var phone = document.getElementById('contact-phone');
       var message = document.getElementById('contact-message');
 
       var valid = true;
-      [name, email, subject, message].forEach(function (field) {
+
+      // Validate only required fields (HTML marks them)
+      var requiredFields = form.querySelectorAll('[required]');
+      requiredFields.forEach(function (field) {
         if (!field) return;
-        if (!field.value.trim()) {
-          field.style.borderColor = '#E63946';
+        var val = (field.value || '').trim();
+        if (!val) {
+          field.classList.add('input-error');
           valid = false;
         } else {
-          field.style.borderColor = '';
+          field.classList.remove('input-error');
         }
       });
 
+      // Email format check
       if (email && email.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-        email.style.borderColor = '#E63946';
+        email.classList.add('input-error');
         valid = false;
       }
 
       if (!valid) return;
 
-      // Simulate loading
+      // Preserve original UX: simulate loading and success state
       submitBtn.classList.add('loading');
       submitBtn.disabled = true;
 
@@ -392,11 +277,14 @@
     });
 
     // Clear error styling on input
-    form.querySelectorAll('input, select, textarea').forEach(function (field) {
-      field.addEventListener('input', function () {
-        this.style.borderColor = '';
+    var fields = form.querySelectorAll('input, select, textarea');
+    if (fields && fields.length) {
+      fields.forEach(function (field) {
+        field.addEventListener('input', function () {
+          this.classList.remove('input-error');
+        });
       });
-    });
+    }
   }
 
 })();
