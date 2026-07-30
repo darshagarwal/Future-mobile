@@ -252,28 +252,57 @@
 
       if (!valid) return;
 
-      // Preserve original UX: simulate loading and success state
+      // Show loading state
       submitBtn.classList.add('loading');
       submitBtn.disabled = true;
 
-      setTimeout(function () {
+      // Send data to backend
+      fetch('http://127.0.0.1:5050/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name ? name.value.trim() : '',
+          email: email ? email.value.trim() : '',
+          company: company ? company.value.trim() : '',
+          phone: phone ? phone.value.trim() : '',
+          message: message ? message.value.trim() : ''
+        })
+      })
+      .then(function (response) {
+        return response.json();
+      })
+      .then(function (data) {
         submitBtn.classList.remove('loading');
         submitBtn.disabled = false;
 
-        // Success state
-        var originalHTML = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<span class="btn-text">✓ Message Sent!</span>';
-        submitBtn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
-        submitBtn.style.boxShadow = '0 4px 20px rgba(34,197,94,0.35)';
+        if (data.success) {
+          // Success state
+          var originalHTML = submitBtn.innerHTML;
 
-        form.reset();
+          submitBtn.innerHTML = '<span class="btn-text">✓ Message Sent!</span>';
+          submitBtn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+          submitBtn.style.boxShadow = '0 4px 20px rgba(34,197,94,0.35)';
 
-        setTimeout(function () {
-          submitBtn.innerHTML = originalHTML;
-          submitBtn.style.background = '';
-          submitBtn.style.boxShadow = '';
-        }, 3000);
-      }, 1800);
+          form.reset();
+
+          setTimeout(function () {
+            submitBtn.innerHTML = originalHTML;
+            submitBtn.style.background = '';
+            submitBtn.style.boxShadow = '';
+          }, 3000);
+        } else {
+          alert(data.message || 'Failed to send message. Please try again.');
+        }
+      })
+      .catch(function (error) {
+        submitBtn.classList.remove('loading');
+        submitBtn.disabled = false;
+
+        console.error('Contact form error:', error);
+        alert('Server error. Please try again later.');
+      });
     });
 
     // Clear error styling on input
