@@ -257,7 +257,7 @@
       submitBtn.disabled = true;
 
       // Send data to backend
-      fetch('http://127.0.0.1:5050/api/contact', {
+      fetch('https://future-mobile-backend.onrender.com/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
