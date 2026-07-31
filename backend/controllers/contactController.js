@@ -1,25 +1,17 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 exports.sendContactMail = async (req, res) => {
   try {
     const { name, email, company, phone, message } = req.body;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
+    console.log('FORM RECEIVED:', req.body);
+
+    const result = await resend.emails.send({
+      from: 'Future Mobile <onboarding@resend.dev>',
+      to: 'agarwaldarsh2007@gmail.com',
+      reply_to: email,
       subject: `New Website Enquiry from ${name}`,
       html: `
         <h2>New Contact Form Submission</h2>
@@ -32,14 +24,15 @@ exports.sendContactMail = async (req, res) => {
       `
     });
 
+    console.log('RESEND RESULT:', result);
+
     res.json({
       success: true,
       message: 'Email sent successfully'
     });
-    console.log('SMTP PORT = 587');
 
   } catch (error) {
-    console.error('MAIL ERROR:', error);
+    console.error('RESEND ERROR:', error);
 
     res.status(500).json({
       success: false,
