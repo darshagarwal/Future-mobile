@@ -1,9 +1,12 @@
 const express = require('express');
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 const router = express.Router();
 
 console.log('USING SMTP PORT 587');
+
+
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -14,9 +17,15 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
+  family: 4, // force IPv4
   tls: {
-    family: 4,
     rejectUnauthorized: false
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+  lookup(hostname, options, callback) {
+    return dns.lookup(hostname, { family: 4 }, callback);
   }
 });
 
