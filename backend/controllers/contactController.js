@@ -36,6 +36,7 @@ exports.sendContactMail = async (req, res) => {
       success: true,
       message: 'Email sent successfully'
     });
+    console.log('SMTP PORT = 587');
 
   } catch (error) {
     console.error('MAIL ERROR:', error);
