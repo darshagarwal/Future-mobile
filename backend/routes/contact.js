@@ -12,7 +12,7 @@ router.post('/', async (req, res) => {
     console.log('New form submission:', req.body);
     console.log('USING RESEND API');
     await resend.emails.send({
-      from: 'Future Mobile <agarwaldarsh2007@gmail.com>',
+      from: 'Future Mobile <onboarding@resend.dev>',
       to: 'agarwaldarsh2007@gmail.com',
       reply_to: email,
       subject: `New Website Enquiry from ${name}`,
