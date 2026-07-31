@@ -9,7 +9,7 @@ console.log('USING SMTP PORT 587');
 
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
+  host: 'smtp-relay.gmail.com',
   port: 587,
   secure: false,
   requireTLS: true,
@@ -17,15 +17,11 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
-  family: 4, // force IPv4
-  tls: {
-    rejectUnauthorized: false
-  },
   connectionTimeout: 10000,
   greetingTimeout: 10000,
   socketTimeout: 10000,
-  lookup(hostname, options, callback) {
-    return dns.lookup(hostname, { family: 4 }, callback);
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
