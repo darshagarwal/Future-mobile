@@ -10,7 +10,7 @@ router.post('/', async (req, res) => {
     const { name, email, company, phone, message } = req.body;
 
     console.log('New form submission:', req.body);
-
+    console.log('USING RESEND API');
     await resend.emails.send({
       from: 'Future Mobile <agarwaldarsh2007@gmail.com>',
       to: 'agarwaldarsh2007@gmail.com',
